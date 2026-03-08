@@ -17,6 +17,7 @@ import {
   Settings,
 } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
+import { CVList } from "@/components/cv/cv-list";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -166,27 +167,7 @@ export default function DashboardPage() {
             </Card>
           </div>
 
-          <Card>
-            <CardHeader>
-              <h2 className="text-xl font-semibold">Your CVs</h2>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-12">
-                <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">
-                  No CVs uploaded yet
-                </h3>
-                <p className="text-muted-foreground mb-6">
-                  Upload your first CV to get started with AI-powered
-                  optimization
-                </p>
-                <Button>
-                  <Upload className="mr-2 h-4 w-4" />
-                  Upload Your First CV
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          <CVList isPro={isPro} />
 
           <Card>
             <CardHeader>
