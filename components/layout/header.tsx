@@ -1,7 +1,13 @@
+"use client";
+
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/auth-context";
+import { User } from "lucide-react";
 
 export function Header() {
+  const { user } = useAuth();
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
@@ -31,12 +37,23 @@ export function Header() {
         </nav>
 
         <div className="flex items-center space-x-4">
-          <Link href="/login" className="hidden md:inline-flex">
-            <Button variant="ghost">Log in</Button>
-          </Link>
-          <Link href="/register">
-            <Button>Get Started Free</Button>
-          </Link>
+          {user ? (
+            <Link href="/dashboard">
+              <Button>
+                <User className="mr-2 h-4 w-4" />
+                Dashboard
+              </Button>
+            </Link>
+          ) : (
+            <>
+              <Link href="/login" className="hidden md:inline-flex">
+                <Button variant="ghost">Log in</Button>
+              </Link>
+              <Link href="/register">
+                <Button>Get Started Free</Button>
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </header>
