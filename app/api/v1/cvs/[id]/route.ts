@@ -77,6 +77,7 @@ export async function PUT(
     // Validate request body
     const validation = cvUpdateSchema.safeParse(body);
     if (!validation.success) {
+      console.error("CV validation failed:", JSON.stringify(validation.error.issues, null, 2));
       return NextResponse.json(
         { error: "Invalid request data", details: validation.error.issues },
         { status: 400 }
