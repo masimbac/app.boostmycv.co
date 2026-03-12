@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -15,19 +15,66 @@ import {
   User,
   LogOut,
   Settings,
+  Target,
+  Briefcase,
 } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { CVList } from "@/components/cv/cv-list";
+import { ScoreListItem } from "@/types/score";
 
 export default function DashboardPage() {
   const router = useRouter();
   const { user, userProfile, loading, signOut } = useAuth();
+  const [cvCount, setCvCount] = useState(0);
+  const [scoresThisMonth, setScoresThisMonth] = useState(0);
+  const [recentScores, setRecentScores] = useState<ScoreListItem[]>([]);
+  const [loadingStats, setLoadingStats] = useState(true);
 
   useEffect(() => {
     if (!loading && !user) {
       router.push("/login");
     }
   }, [user, loading, router]);
+
+  useEffect(() => {
+    if (user) {
+      loadStats();
+    }
+  }, [user]);
+
+  const loadStats = async () => {
+    try {
+      setLoadingStats(true);
+
+      // Load CVs
+      const cvsResponse = await fetch("/api/v1/cvs");
+      const cvsData = await cvsResponse.json();
+      if (cvsResponse.ok) {
+        setCvCount(cvsData.cvs.length);
+      }
+
+      // Load scores
+      const scoresResponse = await fetch("/api/v1/scores");
+      const scoresData = await scoresResponse.json();
+      if (scoresResponse.ok) {
+        // Count scores from this month
+        const startOfMonth = new Date();
+        startOfMonth.setDate(1);
+        startOfMonth.setHours(0, 0, 0, 0);
+
+        const thisMonthScores = scoresData.scores.filter((score: ScoreListItem) => {
+          return new Date(score.created_at) >= startOfMonth;
+        });
+
+        setScoresThisMonth(thisMonthScores.length);
+        setRecentScores(scoresData.scores.slice(0, 3));
+      }
+    } catch (error) {
+      console.error("Failed to load stats:", error);
+    } finally {
+      setLoadingStats(false);
+    }
+  };
 
   const handleSignOut = async () => {
     await signOut();
@@ -47,6 +94,7 @@ export default function DashboardPage() {
   }
 
   const isPro = userProfile.subscription_tier === "pro";
+  const scoresRemaining = isPro ? "Unlimited" : `${5 - scoresThisMonth} remaining`;
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -83,13 +131,21 @@ export default function DashboardPage() {
 
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-6xl mx-auto space-y-8">
-          <div>
-            <h1 className="text-3xl font-bold mb-2">
-              Welcome back, {userProfile.full_name}!
-            </h1>
-            <p className="text-muted-foreground">
-              Manage your CVs and track your optimization progress
-            </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold mb-2">
+                Welcome back, {userProfile.full_name}!
+              </h1>
+              <p className="text-muted-foreground">
+                Manage your CVs and track your optimization progress
+              </p>
+            </div>
+            <Link href="/dashboard/scoring">
+              <Button size="lg">
+                <Target className="mr-2 h-5 w-5" />
+                Score CV
+              </Button>
+            </Link>
           </div>
 
           {!isPro && (
@@ -126,7 +182,9 @@ export default function DashboardPage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold mb-2">0</div>
+                <div className="text-3xl font-bold mb-2">
+                  {loadingStats ? <Loader2 className="h-8 w-8 animate-spin" /> : cvCount}
+                </div>
                 <p className="text-sm text-muted-foreground">
                   {isPro ? "Unlimited" : "Maximum 2 CVs"}
                 </p>
@@ -141,9 +199,11 @@ export default function DashboardPage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold mb-2">0</div>
+                <div className="text-3xl font-bold mb-2">
+                  {loadingStats ? <Loader2 className="h-8 w-8 animate-spin" /> : scoresThisMonth}
+                </div>
                 <p className="text-sm text-muted-foreground">
-                  {isPro ? "Unlimited scoring" : "5 scores remaining"}
+                  {scoresRemaining}
                 </p>
               </CardContent>
             </Card>
@@ -169,16 +229,93 @@ export default function DashboardPage() {
 
           <CVList isPro={isPro} />
 
-          <Card>
-            <CardHeader>
-              <h2 className="text-xl font-semibold">Recent Activity</h2>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-12 text-muted-foreground">
-                <p>No activity yet. Start by uploading a CV!</p>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="grid md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-semibold">Recent Scores</h2>
+                  <Link href="/dashboard/scores">
+                    <Button variant="ghost" size="sm">
+                      View All
+                    </Button>
+                  </Link>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {loadingStats ? (
+                  <div className="text-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
+                  </div>
+                ) : recentScores.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <TrendingUp className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">No scores yet</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {recentScores.map((score) => (
+                      <Link
+                        key={score.score_id}
+                        href={`/dashboard/scores/${score.score_id}`}
+                      >
+                        <div className="p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <p className="font-medium text-sm">{score.cv_name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {score.job_title}
+                              </p>
+                            </div>
+                            <div
+                              className={`text-lg font-bold ${
+                                score.overall_score >= 75
+                                  ? "text-green-600"
+                                  : score.overall_score >= 60
+                                  ? "text-yellow-600"
+                                  : "text-red-600"
+                              }`}
+                            >
+                              {score.overall_score}
+                            </div>
+                          </div>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-semibold">Quick Links</h2>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <Link href="/dashboard/scoring">
+                    <Button variant="outline" className="w-full justify-start">
+                      <Target className="mr-2 h-4 w-4" />
+                      Score a CV
+                    </Button>
+                  </Link>
+                  <Link href="/dashboard/jobs">
+                    <Button variant="outline" className="w-full justify-start">
+                      <Briefcase className="mr-2 h-4 w-4" />
+                      Saved Jobs
+                    </Button>
+                  </Link>
+                  <Link href="/dashboard/scores">
+                    <Button variant="outline" className="w-full justify-start">
+                      <TrendingUp className="mr-2 h-4 w-4" />
+                      All Scores
+                    </Button>
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </div>
