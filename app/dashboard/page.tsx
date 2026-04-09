@@ -17,6 +17,7 @@ import {
   Settings,
   Target,
   Briefcase,
+  Sparkles,
 } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { CVList } from "@/components/cv/cv-list";
@@ -310,6 +311,12 @@ export default function DashboardPage() {
                     <Button variant="outline" className="w-full justify-start">
                       <TrendingUp className="mr-2 h-4 w-4" />
                       All Scores
+                    </Button>
+                  </Link>
+                  <Link href="/dashboard/boosts">
+                    <Button variant="outline" className="w-full justify-start">
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      My Boosts
                     </Button>
                   </Link>
                 </div>

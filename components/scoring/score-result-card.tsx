@@ -1,10 +1,13 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { CheckCircle2, AlertCircle, Lightbulb, RotateCcw } from "lucide-react";
+import { CheckCircle2, AlertCircle, Lightbulb, RotateCcw, Sparkles, Loader2, FileText } from "lucide-react";
 import { Score } from "@/types/score";
 import Link from "next/link";
+import { toast } from "sonner";
 
 interface ScoreResultCardProps {
   score: Score;
@@ -12,6 +15,41 @@ interface ScoreResultCardProps {
 }
 
 export function ScoreResultCard({ score, onScoreAnother }: ScoreResultCardProps) {
+  const router = useRouter();
+  const [creatingBoost, setCreatingBoost] = useState(false);
+
+  const handleCreateBoost = async () => {
+    try {
+      setCreatingBoost(true);
+      const response = await fetch("/api/v1/boosts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ score_id: score.score_id }),
+      });
+
+      const data = await response.json();
+
+      if (response.status === 409 && data.boost?.boost_id) {
+        toast.info("Boost already exists — opening it.");
+        router.push(`/dashboard/boosts/${data.boost.boost_id}`);
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to create boost");
+      }
+
+      toast.success("AI improvements generated successfully!");
+      router.push(`/dashboard/boosts/${data.boost.boost_id}`);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to create boost"
+      );
+    } finally {
+      setCreatingBoost(false);
+    }
+  };
+
   const getScoreColor = (score: number) => {
     if (score >= 90) return "text-green-600";
     if (score >= 75) return "text-blue-600";
@@ -168,11 +206,31 @@ export function ScoreResultCard({ score, onScoreAnother }: ScoreResultCardProps)
       )}
 
       {/* Actions */}
-      <div className="flex gap-3 justify-end">
-        <Link href={`/dashboard/scores/${score.score_id}`}>
-          <Button variant="outline">View Full Details</Button>
+      <div className="flex gap-3 justify-end flex-wrap">
+        <Link href={`/dashboard/cvs/${score.cv_id}`}>
+          <Button variant="outline">
+            <FileText className="mr-2 h-4 w-4" />
+            Edit CV
+          </Button>
         </Link>
-        <Button onClick={onScoreAnother}>
+        <Button
+          onClick={handleCreateBoost}
+          disabled={creatingBoost}
+          className="bg-linkedin-blue hover:bg-linkedin-blue/90"
+        >
+          {creatingBoost ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Generating...
+            </>
+          ) : (
+            <>
+              <Sparkles className="mr-2 h-4 w-4" />
+              Auto-Boost CV
+            </>
+          )}
+        </Button>
+        <Button onClick={onScoreAnother} variant="outline">
           <RotateCcw className="mr-2 h-4 w-4" />
           Score Another CV
         </Button>

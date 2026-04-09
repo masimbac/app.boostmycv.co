@@ -309,3 +309,112 @@ export async function ensureScoresTable(): Promise<void> {
     }
   }
 }
+
+export async function ensureBoostsTable(): Promise<void> {
+  const tableName =
+    process.env.DYNAMODB_BOOSTS_TABLE_NAME || "boostmycv-boosts";
+
+  try {
+    const tableDescription = await client.send(
+      new DescribeTableCommand({ TableName: tableName })
+    );
+    console.log(`Table ${tableName} exists`);
+
+    // Check if GSIs exist
+    const gsiNames =
+      tableDescription.Table?.GlobalSecondaryIndexes?.map(
+        (gsi) => gsi.IndexName
+      ) || [];
+    const missingGSIs = [];
+
+    if (!gsiNames.includes("user_id-index")) {
+      missingGSIs.push({
+        IndexName: "user_id-index",
+        KeySchema: [{ AttributeName: "user_id", KeyType: "HASH" as const }],
+        Projection: { ProjectionType: "ALL" as const },
+        ProvisionedThroughput: {
+          ReadCapacityUnits: 5,
+          WriteCapacityUnits: 5,
+        },
+      });
+    }
+
+    if (!gsiNames.includes("score_id-index")) {
+      missingGSIs.push({
+        IndexName: "score_id-index",
+        KeySchema: [{ AttributeName: "score_id", KeyType: "HASH" as const }],
+        Projection: { ProjectionType: "ALL" as const },
+        ProvisionedThroughput: {
+          ReadCapacityUnits: 5,
+          WriteCapacityUnits: 5,
+        },
+      });
+    }
+
+    if (missingGSIs.length > 0) {
+      console.log(`Adding missing GSIs to table ${tableName}...`);
+
+      // Add GSIs one at a time
+      for (const gsi of missingGSIs) {
+        await client.send(
+          new UpdateTableCommand({
+            TableName: tableName,
+            AttributeDefinitions: [
+              {
+                AttributeName: gsi.KeySchema[0].AttributeName,
+                AttributeType: "S",
+              },
+            ],
+            GlobalSecondaryIndexUpdates: [{ Create: gsi }],
+          })
+        );
+        console.log(`GSI ${gsi.IndexName} added successfully`);
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+    }
+  } catch (error) {
+    if (error instanceof ResourceNotFoundException) {
+      console.log(`Creating table ${tableName}...`);
+
+      await client.send(
+        new CreateTableCommand({
+          TableName: tableName,
+          AttributeDefinitions: [
+            { AttributeName: "boost_id", AttributeType: "S" },
+            { AttributeName: "user_id", AttributeType: "S" },
+            { AttributeName: "score_id", AttributeType: "S" },
+          ],
+          KeySchema: [{ AttributeName: "boost_id", KeyType: "HASH" }],
+          GlobalSecondaryIndexes: [
+            {
+              IndexName: "user_id-index",
+              KeySchema: [{ AttributeName: "user_id", KeyType: "HASH" }],
+              Projection: { ProjectionType: "ALL" },
+              ProvisionedThroughput: {
+                ReadCapacityUnits: 5,
+                WriteCapacityUnits: 5,
+              },
+            },
+            {
+              IndexName: "score_id-index",
+              KeySchema: [{ AttributeName: "score_id", KeyType: "HASH" }],
+              Projection: { ProjectionType: "ALL" },
+              ProvisionedThroughput: {
+                ReadCapacityUnits: 5,
+                WriteCapacityUnits: 5,
+              },
+            },
+          ],
+          ProvisionedThroughput: {
+            ReadCapacityUnits: 5,
+            WriteCapacityUnits: 5,
+          },
+        })
+      );
+
+      console.log(`Table ${tableName} created successfully`);
+    } else {
+      throw error;
+    }
+  }
+}
