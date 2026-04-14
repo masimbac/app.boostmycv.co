@@ -1,0 +1,28 @@
+{
+  "id": "awesome-cv-two-column-tech",
+  "display_name": "Awesome CV — modern two-column résumé",
+  "short_description": "Bold section rules, skill table, and job blocks mapped from the BoostMyCV schema. Uses the open Awesome-CV class (XeLaTeX).",
+  "latex_engine": "xelatex",
+  "paper": "a4paper",
+  "upstream": {
+    "name": "Awesome-CV",
+    "repository": "https://github.com/posquit0/Awesome-CV",
+    "license": "LPPL-1.3c (class) — examples CC BY-SA 4.0",
+    "compile_note": "Upload resume.tex and awesome-cv.cls in the same Overleaf project (download cls from the app or use the copy next to your generated file in /tmp). Compiler: XeLaTeX."
+  },
+  "sections_supported": [
+    "personal_info",
+    "professional_summary",
+    "work_experience",
+    "education",
+    "skills",
+    "projects",
+    "certifications",
+    "awards",
+    "publications",
+    "volunteer_experience"
+  ],
+  "file_output": {
+    "primary_tex": "resume.tex"
+  }
+}

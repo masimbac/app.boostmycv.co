@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Save, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { Loader2, Save, ArrowLeft, CheckCircle2, FileCode2 } from "lucide-react";
 import { CV } from "@/types/cv";
 import Link from "next/link";
 
@@ -120,7 +120,13 @@ export default function CVDetailPage() {
                 Back to Dashboard
               </Button>
             </Link>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
+              <Link href={`/dashboard/cvs/${cvId}/preview`}>
+                <Button variant="secondary">
+                  <FileCode2 className="mr-2 h-4 w-4" />
+                  LaTeX / PDF prep
+                </Button>
+              </Link>
               {editing ? (
                 <>
                   <Button onClick={handleSave} disabled={saving}>

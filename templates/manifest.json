@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "default_template_id": "awesome-cv-two-column-tech",
+  "templates": [
+    {
+      "id": "awesome-cv-two-column-tech",
+      "meta_path": "awesome-cv/meta.json"
+    }
+  ]
+}
